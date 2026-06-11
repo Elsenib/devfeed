@@ -2,7 +2,11 @@
   "expo": {
     "name": "DevFeed Mobile",
     "slug": "devfeed-mobile",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -10,9 +14,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#0d1117"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
-      "package": "com.yourdomain.devfeedmobile"
+      "package": "com.yourdomain.devfeedmobile",
+      "minSdkVersion": 21,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5d888528-e8a4-4861-af23-77fc915e35e7"
+      }
     }
   }
 }
