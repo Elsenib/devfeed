@@ -21,3 +21,4 @@ build/
 *.cer
 .yarn/cache/
 .pnp.js
+".env" 
