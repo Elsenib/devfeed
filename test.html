@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DevFeed API Test</title>
+  <style>
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #58a6ff;
+    }
+    .section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    button {
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      margin: 4px;
+      font-size: 13px;
+    }
+    button:hover {
+      background: #2ea043;
+    }
+    button.danger {
+      background: #da3633;
+    }
+    button.danger:hover {
+      background: #f85149;
+    }
+    input {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px;
+      border-radius: 6px;
+      width: 300px;
+      margin: 4px;
+    }
+    .response {
+      background: #0d1117;
+      border-left: 3px solid #58a6ff;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .error {
+      border-left-color: #f85149;
+      color: #f85149;
+    }
+    .success {
+      border-left-color: #3fb950;
+      color: #3fb950;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 DevFeed API Tester</h1>
+
+    <!-- Login Section -->
+    <div class="section">
+      <h2>1️⃣ Login</h2>
+      <input type="email" id="email" value="test+ui@local.test" placeholder="Email">
+      <input type="password" id="password" value="pass1234" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <div id="loginResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Posts Section -->
+    <div class="section">
+      <h2>2️⃣ Get Posts</h2>
+      <input type="number" id="limit" value="20" placeholder="Limit" style="width:100px;">
+      <input type="number" id="offset" value="0" placeholder="Offset" style="width:100px;">
+      <button onclick="getPosts()">Fetch Posts</button>
+      <div id="postsResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Post Detail Section -->
+    <div class="section">
+      <h2>3️⃣ Get Post Detail</h2>
+      <input type="number" id="postId" value="1" placeholder="Post ID" style="width:100px;">
+      <button onclick="getPostDetail()">Get Post</button>
+      <div id="detailResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Like Section -->
+    <div class="section">
+      <h2>4️⃣ Like/Unlike Post</h2>
+      <input type="number" id="likePostId" value="1" placeholder="Post ID" style="width:100px;">
+      <button onclick="likePost()">❤️ Like</button>
+      <button onclick="unlikePost()" class="danger">❤️ Unlike</button>
+      <div id="likeResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Bookmark Section -->
+    <div class="section">
+      <h2>5️⃣ Bookmark/Unbookmark Post</h2>
+      <input type="number" id="bookmarkPostId" value="1" placeholder="Post ID" style="width:100px;">
+      <button onclick="bookmarkPost()">🔖 Bookmark</button>
+      <button onclick="unBookmarkPost()" class="danger">🔖 Remove Bookmark</button>
+      <div id="bookmarkResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="section">
+      <h2>6️⃣ Comments</h2>
+      <input type="number" id="commentPostId" value="1" placeholder="Post ID" style="width:100px;">
+      <button onclick="getComments()">Get Comments</button>
+      <div id="commentsResponse" class="response" style="display:none;"></div>
+      <br>
+      <input type="text" id="commentText" placeholder="Comment text" style="width:400px;">
+      <button onclick="addComment()">Add Comment</button>
+      <div id="addCommentResponse" class="response" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:4000';
+    let token = null;
+
+    function showResponse(elementId, data, isError = false) {
+      const elem = document.getElementById(elementId);
+      elem.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      elem.classList.toggle('error', isError);
+      elem.classList.toggle('success', !isError);
+      elem.style.display = 'block';
+    }
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          token = data.token;
+          localStorage.setItem('token', token);
+          showResponse('loginResponse', `✅ Login successful! Token: ${token.substring(0, 30)}...`, false);
+        } else {
+          showResponse('loginResponse', data, true);
+        }
+      } catch (e) {
+        showResponse('loginResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function getPosts() {
+      if (!token) {
+        showResponse('postsResponse', '❌ Login first!', true);
+        return;
+      }
+      const limit = document.getElementById('limit').value;
+      const offset = document.getElementById('offset').value;
+      try {
+        const res = await fetch(`${API_URL}/posts?limit=${limit}&offset=${offset}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('postsResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('postsResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function getPostDetail() {
+      if (!token) {
+        showResponse('detailResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('postId').value;
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('detailResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('detailResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function likePost() {
+      if (!token) {
+        showResponse('likeResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('likePostId').value;
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}/like`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('likeResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('likeResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function unlikePost() {
+      if (!token) {
+        showResponse('likeResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('likePostId').value;
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}/like`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('likeResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('likeResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function bookmarkPost() {
+      if (!token) {
+        showResponse('bookmarkResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('bookmarkPostId').value;
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}/bookmark`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('bookmarkResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('bookmarkResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function unBookmarkPost() {
+      if (!token) {
+        showResponse('bookmarkResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('bookmarkPostId').value;
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}/bookmark`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('bookmarkResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('bookmarkResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function getComments() {
+      if (!token) {
+        showResponse('commentsResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('commentPostId').value;
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        showResponse('commentsResponse', data, !res.ok);
+      } catch (e) {
+        showResponse('commentsResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    async function addComment() {
+      if (!token) {
+        showResponse('addCommentResponse', '❌ Login first!', true);
+        return;
+      }
+      const postId = document.getElementById('commentPostId').value;
+      const text = document.getElementById('commentText').value;
+      if (!text) {
+        showResponse('addCommentResponse', '❌ Comment text is empty!', true);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        showResponse('addCommentResponse', data, !res.ok);
+        if (res.ok) {
+          document.getElementById('commentText').value = '';
+        }
+      } catch (e) {
+        showResponse('addCommentResponse', `❌ Error: ${e.message}`, true);
+      }
+    }
+
+    // Auto-load token from localStorage
+    window.onload = () => {
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
+        token = savedToken;
+        console.log('Token restored from localStorage');
+      }
+    };
+  </script>
+</body>
+</html>

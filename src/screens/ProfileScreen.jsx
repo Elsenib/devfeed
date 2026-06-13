@@ -1,26 +1,66 @@
-import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import * as api from '../api';
 
-export default function ProfileScreen() {
+const TECH_STACKS = {
+  frontend:  ["React", "Vue", "Angular", "Next.js", "TypeScript", "Tailwind", "Svelte"],
+  backend:   ["Node.js", "Python", "Go", "Java", "Rust", "PHP", "Ruby", "C#"],
+  fullstack: ["React + Node", "Next.js", "Nuxt", "Django", "Laravel", "Rails"],
+  mobile:    ["React Native", "Flutter", "Swift", "Kotlin", "Expo", "Ionic"],
+  embedded:  ["C/C++", "Rust", "Arduino", "Assembly", "FPGA"],
+  game:      ["Unity", "Unreal", "Godot", "C#", "C++"],
+  ux:        ["Figma", "Adobe XD", "Sketch", "Wireframing", "User Research"],
+  ui:        ["Figma", "Illustrator", "CSS", "Design Systems", "Prototyping"],
+  product:   ["Figma", "Adobe CC", "Prototyping", "User Research", "Handoff"],
+  motion:    ["After Effects", "Blender", "Lottie", "Premiere", "Motion Design"],
+  brand:     ["Figma", "Illustrator", "Photoshop", "Typography", "Color Theory"],
+  cloud:     ["AWS", "GCP", "Azure", "Terraform", "CloudFormation"],
+  sre:       ["Prometheus", "Grafana", "ELK", "Datadog", "Monitoring"],
+  security:  ["OWASP", "Penetration Testing", "Encryption", "IAM", "Compliance"],
+  cicd:      ["Jenkins", "GitLab CI", "GitHub Actions", "Docker", "Kubernetes"],
+  analyst:   ["SQL", "Python", "Tableau", "Power BI", "Excel"],
+  engineer:  ["Python", "SQL", "Airflow", "Spark", "dbt"],
+  scientist: ["Python", "TensorFlow", "PyTorch", "Scikit-learn", "Pandas"],
+  ml:        ["TensorFlow", "PyTorch", "MLflow", "Kubeflow", "Model Deploy"],
+  recruiter: ["LinkedIn", "HubSpot", "Lever", "ATS", "Networking"],
+  hrbp:      ["HRIS", "SAP", "Workday", "People Analytics", "OD"],
+  talent:    ["Succession Planning", "Learning", "Career Development", "Coaching"],
+  pm:        ["Jira", "Linear", "Figma", "SQL", "Analytics"],
+  scrum:     ["Jira", "Agile", "Sprint Planning", "Retrospectives", "Kanban"],
+  director:  ["Architecture", "System Design", "People Management", "Roadmap"],
+  cs:        ["Algorithms", "Data Structures", "Databases", "OS", "Networks"],
+  bootcamp:  ["Web Dev", "Mobile", "AI/ML", "Cloud", "Full Stack"],
+  selftaught:["Online Courses", "Projects", "Open Source", "Self Learning"],
+  cto:       ["System Architecture", "Tech Stack", "DevOps", "Scaling"],
+  ceo:       ["Product Vision", "Business", "Strategy", "Leadership"],
+  indie:     ["Full Stack", "DevOps", "Marketing", "Solo Development"],
+  default:   ["Git", "Linux", "Problem Solving", "Communication"],
+};
+
+export default function ProfileScreen({ navigation }) {
   const { user } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await api.fetchProfile();
-        setProfile(data);
-      } catch (error) {
-        console.warn(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      const data = await api.fetchProfile();
+      setProfile(data);
+    } catch (error) {
+      console.warn(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -32,34 +72,75 @@ export default function ProfileScreen() {
 
   const displayName = profile?.name || user?.name || user?.email || 'İstifadəçi';
   const bio = profile?.bio || 'Qısa bio əlavə et.';
-  const stack = profile?.stack || ['React Native', 'Node.js', 'PostgreSQL'];
+  const fullRole = profile?.role || 'Rol seçilmədi';
+  // Parse role-subrole format (e.g., "developer-fullstack")
+  const roleParts = fullRole.split('-');
+  const roleBase = roleParts[0];
+  const subRoleId = roleParts[1];
+  
+  // Get recommended tech stack based on subrole or role
+  const stackKey = subRoleId || roleBase;
+  const recommendedStack = TECH_STACKS[stackKey] || TECH_STACKS.default;
+  
+  const userSkills = profile?.skills && profile.skills.length ? profile.skills : [];
+  const allTechs = [...recommendedStack, ...userSkills.filter(s => !recommendedStack.includes(s))];
+  
+  const languages = (profile?.languages && profile.languages.length) ? profile.languages : [];
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
+      <TouchableOpacity style={styles.refreshBtn} onPress={loadProfile}>
+        <Text style={styles.refreshText}>🔄 Yənilə</Text>
+      </TouchableOpacity>
       <View style={styles.headerCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>
-        </View>
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>
+          </View>
+        )}
         <View style={styles.headerInfo}>
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.email}>{user?.email || 'example@domain.com'}</Text>
         </View>
       </View>
       <View style={styles.bioCard}>
+        <Text style={styles.sectionTitle}>Rol</Text>
+        <Text style={styles.bioText}>{roleBase}{subRoleId ? ` — ${subRoleId}` : ''}</Text>
+      </View>
+      <View style={styles.bioCard}>
         <Text style={styles.sectionTitle}>Bio</Text>
         <Text style={styles.bioText}>{bio}</Text>
       </View>
       <View style={styles.bioCard}>
-        <Text style={styles.sectionTitle}>Stack</Text>
+        <Text style={styles.sectionTitle}>Texnologiyalar & Bacarıqlar</Text>
         <View style={styles.tagRow}>
-          {stack.map((item) => (
+          {allTechs && allTechs.length ? allTechs.map((item) => (
             <View key={item} style={styles.tagItem}>
               <Text style={styles.tagText}>{item}</Text>
             </View>
-          ))}
+          )) : <Text style={styles.bioText}>Texnologiya seçilmədi</Text>}
         </View>
       </View>
-    </View>
+      <View style={styles.bioCard}>
+        <Text style={styles.sectionTitle}>Dillər</Text>
+        <View style={styles.tagRow}>
+          {languages && languages.length ? languages.map((item) => (
+            <View key={item} style={styles.tagItem}>
+              <Text style={styles.tagText}>{item}</Text>
+            </View>
+          )) : <Text style={styles.bioText}>Dil seçilmədi</Text>}
+        </View>
+      </View>
+      <View style={styles.bioCard}>
+        <Text style={styles.sectionTitle}>Postlar</Text>
+        <Text style={styles.bioText}>{profile?.posts ?? 0} post</Text>
+      </View>
+      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile', { profile })}>
+        <Text style={styles.editButtonText}>Profil düzənlə</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -92,6 +173,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+  },
+  avatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 14,
+    backgroundColor: '#111827',
   },
   avatarText: {
     color: '#fff',
@@ -146,5 +234,32 @@ const styles = StyleSheet.create({
   tagText: {
     color: '#94a3b8',
     fontSize: 12,
+  },
+  refreshBtn: {
+    alignSelf: 'flex-end',
+    marginRight: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#7c3aed',
+    borderRadius: 8,
+  },
+  refreshText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  editButton: {
+    backgroundColor: '#7c3aed',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 });

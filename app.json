@@ -8,22 +8,12 @@
       "web"
     ],
     "version": "1.0.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#0d1117"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
-    "android": {
-      "package": "com.yourdomain.devfeedmobile",
-      "minSdkVersion": 21,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34
-    },
     "extra": {
+      "GOOGLE_CLIENT_ID_WEB": "696401496164-jc0l9nalibbtudvcofmi3baicltr16ad.apps.googleusercontent.com",
+      "GOOGLE_CLIENT_ID_EXPO": "696401496164-jc0l9nalibbtudvcofmi3baicltr16ad.apps.googleusercontent.com",
       "eas": {
         "projectId": "5d888528-e8a4-4861-af23-77fc915e35e7"
       }

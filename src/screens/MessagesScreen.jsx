@@ -1,24 +1,30 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import * as api from '../api';
 
-export default function MessagesScreen() {
+export default function MessagesScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isFocused = useIsFocused();
+
+  const loadConversations = async () => {
+    setLoading(true);
+    try {
+      const data = await api.fetchConversations();
+      setConversations(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.warn(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await api.fetchConversations();
-        setConversations(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.warn(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (isFocused) {
+      loadConversations();
+    }
+  }, [isFocused]);
 
   if (loading) {
     return (
@@ -30,16 +36,28 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.screenTitle}>Söhbətlər</Text>
+        <Pressable style={styles.newButton} onPress={() => navigation.navigate('NewConversation')}>
+          <Text style={styles.newButtonText}>Yeni söhbət</Text>
+        </Pressable>
+      </View>
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id?.toString() ?? Math.random().toString()}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.chatCard}>
+          <Pressable
+            style={styles.chatCard}
+            onPress={() => navigation.navigate('ConversationDetail', {
+              conversationId: item.id,
+              title: item.title,
+            })}
+          >
             <Text style={styles.chatTitle}>{item.title || item.user?.name || 'Söhbət'}</Text>
             <Text style={styles.chatLast}>{item.lastMessage || item.lastMsg || 'Son mesaj burada göstəriləcək'}</Text>
             <Text style={styles.chatTime}>{item.updatedAt || item.time || ''}</Text>
-          </View>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>Heç bir söhbət yoxdur.</Text>}
       />
@@ -81,6 +99,28 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 12,
     marginTop: 10,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  screenTitle: {
+    color: '#e2e8f0',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  newButton: {
+    backgroundColor: '#7c3aed',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  newButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
   emptyText: {
     color: '#94a3b8',

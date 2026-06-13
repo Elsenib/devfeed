@@ -6,4 +6,5 @@ export const AuthContext = createContext({
   signIn: async () => {},
   signOut: () => {},
   signUp: async () => {},
+  socialSignIn: async () => {},
 });
